@@ -21,6 +21,8 @@ from inspire_api import get_result_ids
 
 EMAIL_REGEX = re.compile(r"^[\w\-\.\'\+]+@[\w\-\.]+\.\w{2,4}$")
 ORCID_REGEX = re.compile(r'^0000-\d{4}-\d{4}-\d{3}[\dX]$')
+EPRINT_REGEX = re.compile(r'^(\d{4}\.\d{4}\d?|[a-z]+\-?[a-z]+\d{7})$')
+DOI_REGEX = re.compile(r'10\.\d{4}\d?\/\S+$')
 INSPIRE_REGEX = re.compile(r'^INSPIRE-\d{8}$')
 AFFILIATIONS_DONE = {}
 
@@ -55,6 +57,7 @@ def download_source(eprint='2012.06888', bib=False, dat=False):
     output = open(filename + '.' + file_type, 'wb')
     output.write(source_file.read())
     output.close()
+    os.unlink(paper)
     return file_type
 
 def author_first_last(author):
@@ -175,6 +178,31 @@ def process_author_name(author):
     #print 'OUTPUT =', author
     return author
 
+def get_recid(input):
+    '''find recid based on eprint or doi'''
+
+    if EPRINT_REGEX.match(input):
+        search = 'find eprint ' + input
+        if '/' in input or '.' in input:
+            search = 'find eprint ' + input
+        try:
+            recid = get_result_ids(search)[0]
+        except IndexError:
+            print('Do not have eprint or recid', search)
+            return None
+    elif DOI_REGEX.match(input):
+        try:
+            search = 'find doi ' + doi
+            recid = get_result_ids(search)[0]
+        except IndexError:
+            print('Do not have doi', search)
+            return None
+    elif input.isdigit():
+            recid = input
+    else:
+            recid = None
+    return recid 
+
 def create_xml(eprint=None, doi=None, author_dict=None):
     """Take in the author dictionary and write it out as xml."""
 
@@ -186,6 +214,8 @@ def create_xml(eprint=None, doi=None, author_dict=None):
         author = value[0].split(',')
         author.reverse()
         author = " ".join(author)      
+        if author in new_author_dict:
+            author = author + '2'
         new_author_dict[author] = []
         for aff in value[1]:
             if aff not in new_aff_dict:
@@ -204,22 +234,6 @@ def create_xml(eprint=None, doi=None, author_dict=None):
     #print(new_aff_dict)
     
 
-    if eprint:
-        search = 'find eprint ' + eprint + ' or recid ' + eprint
-        if '/' in eprint or '.' in eprint:
-            search = 'find eprint ' + eprint
-        try:
-            get_result_ids(search)[0]
-        except IndexError:
-            print('Do not have eprint or recid', search)
-            return None
-    elif doi:
-        try:
-            search = 'find doi ' + doi
-            get_result_ids(search)[0]
-        except IndexError:
-            print('Do not have doi', search)
-            return None
     record = {}
     #record_add_field(record, '001', controlfield_value=str(recid))
     #tag = '100__'
@@ -788,8 +802,8 @@ def main(eprint):
         output.write(update)
     output.write('</collection>')
     output.close()
-    print(filename)
-
+    #print(filename)
+    os.unlink(filename)
 
     filename = __file__
     filename = filename.replace('.py', '.log')
@@ -799,7 +813,8 @@ def main(eprint):
     log.write(date_time_stamp)
     log.close()
     print(filename)
-
+    recid = get_recid(eprint)
+    print('https://inspirehep.net/literature/' + str(recid))
 
 if __name__ == '__main__':
 
