@@ -178,32 +178,33 @@ def process_author_name(author):
     #print 'OUTPUT =', author
     return author
 
-def get_recid(input):
+def get_recid(input_id):
     '''find recid based on eprint or doi'''
 
-    if EPRINT_REGEX.match(input):
-        search = 'find eprint ' + input
-        if '/' in input or '.' in input:
-            search = 'find eprint ' + input
+    if EPRINT_REGEX.match(input_id):
+        search = 'find eprint ' + input_id
+        if '/' in input_id or '.' in input_id:
+            search = 'find eprint ' + input_id
         try:
             recid = get_result_ids(search)[0]
         except IndexError:
             print('Do not have eprint or recid', search)
             return None
-    elif DOI_REGEX.match(input):
+    elif DOI_REGEX.match(input_id):
         try:
-            search = 'find doi ' + doi
+            search = 'find doi ' + input_id
             recid = get_result_ids(search)[0]
         except IndexError:
             print('Do not have doi', search)
             return None
-    elif input.isdigit():
-            recid = input
+    elif input_id.isdigit():
+        recid = input_id
     else:
-            recid = None
-    return recid 
+        recid = None
+    return recid
 
-def create_xml(eprint=None, doi=None, author_dict=None):
+#def create_xml(eprint=None, doi=None, author_dict=None):
+def create_xml(author_dict=None):
     """Take in the author dictionary and write it out as xml."""
 
     aff_counter = 0
@@ -213,7 +214,7 @@ def create_xml(eprint=None, doi=None, author_dict=None):
     for key, value in author_dict.items():
         author = value[0].split(',')
         author.reverse()
-        author = " ".join(author)      
+        author = " ".join(author)
         if author in new_author_dict:
             author = author + '2'
         new_author_dict[author] = []
@@ -222,17 +223,17 @@ def create_xml(eprint=None, doi=None, author_dict=None):
                 aff_counter += 1
                 new_aff_dict[aff] = aff_counter
             new_author_dict[author].append(new_aff_dict[aff])
-        #print(author, new_author_dict[author], value[1])            
+        #print(author, new_author_dict[author], value[1])
 
     for author, affkeys in new_author_dict.items():
         print(author, ','.join(str(affkey) for affkey in affkeys))
     print('\n')
     for key, value in new_aff_dict.items():
+        key = re.sub(r'\s+', ' ', key)
         print(value, LatexNodes2Text().latex_to_text(key))
 
     #print(new_author_dict)
     #print(new_aff_dict)
-    
 
     record = {}
     #record_add_field(record, '001', controlfield_value=str(recid))
@@ -282,7 +283,7 @@ def create_xml(eprint=None, doi=None, author_dict=None):
                                  affiliation, re.IGNORECASE)
             affiliation = re.sub(r'\s*\\and$', r'', affiliation)
 
-            if r"@" in affiliation and r"0000-" in affiliation:
+            if False and r"@" in affiliation and r"0000-" in affiliation:
                 affiliation = affiliation.replace(';', ' ')
                 affiliation = affiliation.replace(r'. ', r'.')
                 email = re.search(r"(\S+\@\S+)", affiliation).group(1)
@@ -297,12 +298,12 @@ def create_xml(eprint=None, doi=None, author_dict=None):
                 else:
                     print('ORCID problem:', orcid)
                 continue
-            if r"@" in affiliation:
+            if False and r"@" in affiliation:
                 affiliation = affiliation.replace(r'. ', r'.')
                 subfields.append(('m', affiliation))
                 continue
             #elif re.match(r"^0000-0", affiliation):
-            if re.search(r"0000-0", affiliation):
+            if False and re.search(r"0000-0", affiliation):
                 #print 'XXX', affiliation
                 for aff in affiliation.split():
                     aff = re.sub(r'[^\d^\-^X]', '', aff)
@@ -650,13 +651,13 @@ def process_ieee(eprint):
             for id_type in ('orcid', 'email'):
                 if id_type in auth:
                     cleanauths[auths.index(auth)+1][1].append(auth[id_type])
-        try:
-            doi = json_dict['doi']
-        except KeyError:
-            print('No doi found')
+        #try:
+        #    doi = json_dict['doi']
+        #except KeyError:
+        #    print('No doi found')
 
     print('Number of authors:', len(cleanauths))
-    return create_xml(doi=doi, author_dict=cleanauths)
+    return create_xml(author_dict=cleanauths)
 
 def process_file(eprint, file_type='tex'):
     """Obtain authors and affiliations from file.
@@ -743,7 +744,7 @@ def process_file(eprint, file_type='tex'):
                     print('Unknown affkey for', author_dict[key])
 
 
-    return create_xml(eprint=eprint, author_dict=author_dict)
+    return create_xml(author_dict=author_dict)
 
 def main(eprint):
     """Get the author list."""
