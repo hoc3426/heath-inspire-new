@@ -181,26 +181,24 @@ def process_author_name(author):
 def get_recid(input_id):
     '''find recid based on eprint or doi'''
 
+    index = None
     if EPRINT_REGEX.match(input_id):
-        search = 'find eprint ' + input_id
-        if '/' in input_id or '.' in input_id:
-            search = 'find eprint ' + input_id
-        try:
-            recid = get_result_ids(search)[0]
-        except IndexError:
-            print('Do not have eprint or recid', search)
-            return None
+        index = 'eprint' 
     elif DOI_REGEX.match(input_id):
-        try:
-            search = 'find doi ' + input_id
-            recid = get_result_ids(search)[0]
-        except IndexError:
-            print('Do not have doi', search)
-            return None
+        index = 'doi'
     elif input_id.isdigit():
         recid = input_id
+    elif '-' in input_id:
+        index = 'report'
     else:
         recid = None
+    if index:
+        search = 'find {0} {1}'.format(index, input_id)
+        try:
+            recid = get_result_ids(search)[0]
+        except IndexError:
+            print('Record not found:', search)
+            return None
     return recid
 
 #def create_xml(eprint=None, doi=None, author_dict=None):
@@ -813,8 +811,9 @@ def main(eprint):
     date_time_stamp = date_time_stamp + ' ' + eprint + '\n'
     log.write(date_time_stamp)
     log.close()
-    print(filename)
     recid = get_recid(eprint)
+    print('\n')
+    print(filename)
     print('https://inspirehep.net/literature/' + str(recid))
 
 if __name__ == '__main__':
