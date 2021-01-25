@@ -1,63 +1,39 @@
 '''A module to return records from INSPIRE.'''
 
-import sys
 from requests import Session
-from requests.exceptions import ConnectTimeout, HTTPError, RequestException
-from requests.adapters import HTTPAdapter
-from urllib.parse import quote
-from urllib3.util.retry import Retry
+from retrying import retry
 
 YOUR_EMAIL = 'hoc@fnal.gov'
 URL = 'https://labs.inspirehep.net/api/literature'
 HEADERS = {'Accept': 'application/json', 'User-Agent': YOUR_EMAIL}
 LIMIT = {'size': 250}
 
-def get_records(url=None, payload=None, headers=None):
+@retry(wait_random_min=1000, wait_random_max=2000, stop_max_attempt_number=7)
+def get_records(url=None, payload=None, headers=None, session=None,
+                nextlink=None):
+
     """ yield json of record(s) matching query """
 
-    connection_timeout = 20
-    with Session() as session:
-        retry_strategy = Retry(total=5,
-                               backoff_factor=2,
-                               status_forcelist=[429, 500, 502, 503, 504],
-                               method_whitelist=["GET", "POST"])
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("https://", adapter)
-        session.headers = headers
-        try:
-            response = session.get(url, params=payload,
-                                   timeout=connection_timeout)
-            response.raise_for_status()
-        except ConnectTimeout as error:
-            print('Timeout accessing {0}\n{1}'.format(url, error))
-            sys.exit(0)
-        except HTTPError as error:
-            print('HTTPError accessing {0}\n{1}'.format(url, error))
-            sys.exit(0)
-        except RequestException as error:
-            print('Error accessing {0}\n{1}'.format(url, error))
-            sys.exit(0)
+    if url is None and nextlink is None:
+        return None
+    if session is None:
+        session = Session()
+        session.headers.update(headers)
+    if nextlink is not None:
+        response=session.get(nextlink)
+    elif url is not None:
+        response = session.get(url, params=payload)
+    response.raise_for_status()
+    resjson = response.json()
+    hits = resjson.get('hits')
+    for rec in hits.get('hits'):
+        yield rec
+    links = resjson.get('links')
+    if 'next' in links:
+        for nextrec in get_records(session=session, nextlink=links['next']):
+            yield nextrec
+    return True
 
-        for rec in response.json().get(u'hits').get(u'hits'):
-            yield rec
-        while u'next' in response.links:
-            nexturl = response.links.get(u'next').get(u'url')
-            if nexturl:
-                try:
-                    response = session.get(nexturl, params=payload,
-                                           timeout=connection_timeout)
-                    response.raise_for_status()
-                except ConnectTimeout as error:
-                    print('Timeout accessing {0}\n{1}'.format(nexturl, error))
-                    sys.exit(0)
-                except HTTPError as error:
-                    print('HTTPError accessing {0}\n{1}'.format(nexturl, error))
-                    sys.exit(0)
-                except RequestException as error:
-                    print('Error accessing {0}\n{1}'.format(nexturl, error))
-                    sys.exit(0)
-                for rec in response.json().get(u'hits').get(u'hits'):
-                    yield rec
 
 def get_json_records(records):
     """ take records and reduce to a dictionary of recids and years """
