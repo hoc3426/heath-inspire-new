@@ -4,6 +4,7 @@ import sys
 from requests import Session
 from requests.exceptions import ConnectTimeout, HTTPError, RequestException
 from requests.adapters import HTTPAdapter
+from urllib.parse import quote
 from urllib3.util.retry import Retry
 
 YOUR_EMAIL = 'hoc@fnal.gov'
@@ -75,7 +76,8 @@ def get_result(search, fields=None):
     """ contruct a search and send it off to INSPIRE """
 
     args = dict(LIMIT)
-    args.update({'q': search})
+    #args.update({'q':quote(search)})
+    args.update({'q':search})
     if fields:
         args.update({'fields':fields})
     records = get_records(URL, payload=args, headers=HEADERS)

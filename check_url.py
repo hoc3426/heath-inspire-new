@@ -10,7 +10,7 @@ ACCEPTED_DESC = ['article from scoap3',
                  'open access fulltext']
 FERMILAB_DESC = 'fermilab library server'
 
-def check_url(url):
+def get_pdf_from_url(url):
     '''Checks a URL to return a well-formed PDF or returns None'''
 
     try:
@@ -33,19 +33,19 @@ def check_url(url):
         print(f'url: {url} does not return a valid pdf file')
         return None
 
-def check_accepted(jrec):
-    '''See if a PDF is accepted'''
+def get_url_check_accepted(jrec):
+    '''Get the url from a record and check if the PDF is accepted'''
 
     accepted = False
     url = None
     urls = []
     try:
         urls += jrec['metadata']['urls']
-    except KeyError:
+    except (KeyError, TypeError):
         pass
     try:
         urls += jrec['metadata']['documents']
-    except KeyError:
+    except (KeyError, TypeError):
         pass
     for url_dict in urls:
         try:
