@@ -4,7 +4,7 @@ from requests import Session
 from retrying import retry
 
 YOUR_EMAIL = 'hoc@fnal.gov'
-URL = 'https://labs.inspirehep.net/api/literature'
+URL = 'https://labs.inspirehep.net/api/'
 HEADERS = {'Accept': 'application/json', 'User-Agent': YOUR_EMAIL}
 LIMIT = {'size': 250}
 
@@ -12,7 +12,7 @@ LIMIT = {'size': 250}
 def get_records(url=None, payload=None, headers=None, session=None,
                 nextlink=None):
 
-    """ yield json of record(s) matching query """
+    ''' yield generator of record(s) matching query '''
 
     if url is None and nextlink is None:
         return None
@@ -25,10 +25,12 @@ def get_records(url=None, payload=None, headers=None, session=None,
         response = session.get(url, params=payload)
     response.raise_for_status()
     resjson = response.json()
-    hits = resjson.get('hits')
-    for rec in hits.get('hits'):
+    hits = resjson.get('hits', {})
+    if url is not None:
+        yield hits.get('total', 0)
+    for rec in hits.get('hits', {}):
         yield rec
-    links = resjson.get('links')
+    links = resjson.get('links', {})
     if 'next' in links:
         for nextrec in get_records(session=session, nextlink=links['next']):
             yield nextrec
@@ -36,33 +38,43 @@ def get_records(url=None, payload=None, headers=None, session=None,
 
 
 def get_json_records(records):
-    """ take records and reduce to a dictionary of recids and years """
+    ''' take generator object of records and return a list of records '''
 
-    recid_list = []
-    for record in records:
-        recid_list.append(record)
-        #recid = record['id']
-        #try:
-        #    rec_year_dict[recid] = REC_YEAR_DICT[recid]
-        #except KeyError:
-        #    rec_year_dict[recid] = int(record['metadata']['earliest_date'][:4])
-    return recid_list
+    count = 0
+    total = next(records)
+    record_list = []
+    for count, record in enumerate(records, 1):
+        record_list.append(record)
+    if count != total:
+        print(f'Problem with the result: total={total} count={count}')
+        return None
+    return record_list
 
-def get_result(search, fields=None):
-    """ contruct a search and send it off to INSPIRE """
+def get_result(search, fields=None, collection='literature'):
+    ''' contruct a search and send it off to INSPIRE '''
 
     args = dict(LIMIT)
     #args.update({'q':quote(search)})
     args.update({'q':search})
     if fields:
         args.update({'fields':fields})
-    records = get_records(URL, payload=args, headers=HEADERS)
-    return get_json_records(records)
+    url = URL + collection
+    records = get_records(url, payload=args, headers=HEADERS)
+    result = get_json_records(records)
+    if result is None:
+        print(f'Problem with the search: {search}')
+        return None
+    return result
 
-def get_result_ids(search):
-    """ get a list of recids """
+def get_result_ids(search, collection='literature'):
+    ''' get a list of recids '''
 
     ids = []
-    for record in get_result(search, 'ids'):
+    result = get_result(search=search, fields='ids',
+                        collection=collection)
+    if not result:
+        #print(f'No result for {search}')
+        return []
+    for record in result:
         ids.append(record['id'])
     return ids
