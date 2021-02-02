@@ -1,12 +1,15 @@
 '''A module to return records from INSPIRE.'''
 
+#from urllib.parse import quote_plus
 from requests import Session
 from retrying import retry
 
 YOUR_EMAIL = 'hoc@fnal.gov'
 URL = 'https://labs.inspirehep.net/api/'
+DOMAIN = 'inspirehep.net'
 HEADERS = {'Accept': 'application/json', 'User-Agent': YOUR_EMAIL}
 LIMIT = {'size': 250}
+COOKIE = 'e5bc115bb81335a2_5ff359c1.8SzAXzl9yD3_6cDp6TErTXodZmw'
 
 @retry(wait_random_min=1000, wait_random_max=2000, stop_max_attempt_number=7)
 def get_records(url=None, payload=None, headers=None, session=None,
@@ -18,6 +21,8 @@ def get_records(url=None, payload=None, headers=None, session=None,
         return None
     if session is None:
         session = Session()
+        session.cookies.set('session', COOKIE, 
+                            domain=DOMAIN, secure=True)
         session.headers.update(headers)
     if nextlink is not None:
         response=session.get(nextlink)
@@ -54,7 +59,7 @@ def get_result(search, fields=None, collection='literature'):
     ''' contruct a search and send it off to INSPIRE '''
 
     args = dict(LIMIT)
-    #args.update({'q':quote(search)})
+    #args.update({'q':quote_plus(search)})
     args.update({'q':search})
     if fields:
         args.update({'fields':fields})
