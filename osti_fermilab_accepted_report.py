@@ -18,7 +18,8 @@ DIVISIONS = ['(AD|APC)', 'CD', 'CCD', 'DI', 'ESH', 'FESS', 'LBNF', 'ND',
              '(A|AE|CMS|E|PPD|T)', 'PIP2', 'QIS', 'SCD', 'TD', 'WDRS', 'V']
 
 JOURNALS = []
-LOGFILE = 'tmp_' + __file__
+LOGFILE = __file__
+LOGFILE = re.sub(r'.*\/', 'tmp_', LOGFILE)
 LOGFILE = re.sub('.py', '.log', LOGFILE)
 logging.basicConfig(filename=LOGFILE, filemode='w',
                     format='%(message)s',

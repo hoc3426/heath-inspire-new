@@ -8,8 +8,8 @@ Script for adding OSTI IDs to INSPIRE records after using OSTI Web Service.
 import re
 import xml.etree.ElementTree as ET
 
-from inspire_api import get_result_ids
-from osti_web_service import create_osti_id_pdf
+from inspire_api import get_result, get_result_ids
+from osti_web_service import create_osti_id_pdf, get_pubnote
 from osti_fermilab_accepted_report import get_fermilab_report
 
 TEST = False
@@ -23,11 +23,6 @@ if TEST:
 
 RECIDS = []
 
-
-def check_for_accepted_pdf(osti_id, recid):
-    '''Look at the record to see if it has an accepted PDF to upload'''
-
-    
 
 def print_rec(osti_id, recid):
     '''Create an xml record to upload'''
@@ -51,9 +46,7 @@ def create_xml(osti_id, recid):
     recid = recid.replace('oai:inspirehep.net:', '')
     search = f'_collections:Fermilab recid:{recid}'
     result = get_result(search)
-    #result_recid = get_result_ids(search)
-    #if len(result_recid) != 1:
-    if len(result) != 1:
+    if len(result) == 0:
         print(f'No such INSPIRE Fermilab record {recid}')
         return None
     jrec = result[0]
@@ -64,7 +57,7 @@ def create_xml(osti_id, recid):
     search += f'external_system_identifiers.value:{osti_id} '
     search += 'external_system_identifiers.schema:osti'
     result_osti = get_result_ids(search)
-    if result_osti == result_recid:
+    if result_osti == recid:
         return None
     if len(result_osti) == 1:
         print(f'OSTI ID {osti_id} already on {result_osti[0]}')
