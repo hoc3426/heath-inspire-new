@@ -50,11 +50,16 @@ def create_xml(osti_id, recid):
     recid = str(recid)
     recid = recid.replace('oai:inspirehep.net:', '')
     search = f'_collections:Fermilab recid:{recid}'
-    result_recid = get_result_ids(search)
-    if len(result_recid) != 1:
+    result = get_result(search)
+    #result_recid = get_result_ids(search)
+    #if len(result_recid) != 1:
+    if len(result) != 1:
         print(f'No such INSPIRE Fermilab record {recid}')
         return None
-    create_osti_id_pdf(recid=recid, osti_id=osti_id)
+    jrec = result[0]
+    report = get_fermilab_report(recid)
+    doi = get_pubnote(jrec)[4]
+    create_osti_id_pdf(jrec, recid, osti_id, doi, report)
     search = '_collections:Fermilab '
     search += f'external_system_identifiers.value:{osti_id} '
     search += 'external_system_identifiers.schema:osti'
