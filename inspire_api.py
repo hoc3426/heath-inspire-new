@@ -1,15 +1,16 @@
 '''A module to return records from INSPIRE.'''
 
-#from urllib.parse import quote_plus
 from requests import Session
 from retrying import retry
+
+from inspire_api_constants_private import COOKIE, TOKEN
 
 YOUR_EMAIL = 'hoc@fnal.gov'
 URL = 'https://labs.inspirehep.net/api/'
 DOMAIN = 'inspirehep.net'
-HEADERS = {'Accept': 'application/json', 'User-Agent': YOUR_EMAIL}
+HEADERS = {'Accept': 'application/json', 'User-Agent': YOUR_EMAIL,
+           'Authorization': f'Bearer {TOKEN}'}
 LIMIT = {'size': 250}
-COOKIE = 'e5bc115bb81335a2_5ff359c1.8SzAXzl9yD3_6cDp6TErTXodZmw'
 
 @retry(wait_random_min=1000, wait_random_max=2000, stop_max_attempt_number=7)
 def get_records(url=None, payload=None, headers=None, session=None,
