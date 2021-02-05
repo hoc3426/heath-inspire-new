@@ -60,7 +60,8 @@ def get_result(search, fields=None, collection='literature'):
     ''' contruct a search and send it off to INSPIRE '''
 
     args = dict(LIMIT)
-    #args.update({'q':quote_plus(search)})
+    if isinstance(search, int) or search.isdigit():
+        search = f'recid:{search}'
     args.update({'q':search})
     if fields:
         args.update({'fields':fields})

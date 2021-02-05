@@ -10,7 +10,7 @@ from collections import Counter
 
 from inspire_api import get_result, get_result_ids
 from osti_accepteds import retrieve_accepteds
-from osti_fermilab_accepted_report_dois import DOIS, YEARS
+from osti_fermilab_accepted_report_dois import DOIS
 
 DIVISIONS = ['A', '(AD|APC)', 'AE', 'CD', 'CMS', 'DI', 'E', 'LBNF', 'ND',
              'PPD', 'T', 'TD']
@@ -136,7 +136,7 @@ def process_dois(dois):
 def main():
     '''Examines compliance by fiscal year.'''
 
-    for year in YEARS:
+    for year in sorted(DOIS):
         logging.info(year)
         (report_numbers_good, report_numbers_bad) = process_dois(DOIS[year])
         print('Fiscal Year:', year)
