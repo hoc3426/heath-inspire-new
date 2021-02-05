@@ -32,7 +32,12 @@ def get_doi_report_dict():
     accepteds = retrieve_accepteds()
     for osti in accepteds:
         for doi in accepteds[osti][2]:
-            doi_report_dict[doi.lower()] = accepteds[osti][1]
+            report = accepteds[osti][1]
+            if report is None:
+                continue
+            if ';' in report:
+                report = re.search(r'FERMILAB[\-\w]+', report).group()
+            doi_report_dict[doi.lower()] = report
     return doi_report_dict
 
 DOI_REPORT_DICT = get_doi_report_dict()
