@@ -50,7 +50,7 @@ def create_xml(osti_id, recid):
         print(f'No such INSPIRE Fermilab record {recid}')
         return None
     jrec = result[0]
-    report = get_fermilab_report(recid)
+    report = get_fermilab_report(recid)[0]
     doi = get_pubnote(jrec)[4]
     create_osti_id_pdf(jrec, recid, osti_id, doi, report)
     search = '_collections:Fermilab '
