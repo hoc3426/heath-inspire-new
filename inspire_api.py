@@ -52,8 +52,8 @@ def get_json_records(records):
     for count, record in enumerate(records, 1):
         record_list.append(record)
     if count != total:
-        print(f'Problem with the result: total={total} count={count}')
-        return None
+        print(f'Warning: total={total} count={count}')
+        #return None
     return record_list
 
 def get_result(search, fields=None, collection='literature'):
