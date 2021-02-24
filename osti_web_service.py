@@ -247,7 +247,6 @@ def get_author_details(jrec, authors):
 def get_corporate_author(jrec):
     '''Check to see if there is a corporte author and return it.'''
 
-    
     try:
         #author_list = jrec['metadata']['corporate_author']
         authors = []
@@ -295,10 +294,9 @@ def get_abstract(jrec):
 def get_report_hidden(jrec):
 
     hidden = False
-    for x in jrec['metadata']['report_numbers']:
-        print(x)
-        if 'hidden' in x and x['value'].startswith('FERMILAB')
-            if x['hidden'] is True:
+    for report in jrec['metadata']['report_numbers']:
+        if 'hidden' in report and report['value'].startswith('FERMILAB'):
+            if report['hidden']:
                 hidden = True
     return hidden
 
@@ -355,7 +353,7 @@ def get_affiliations(jrec, long_flag):
             for affiliation in author['affiliations']:
                 affiliations.add(affiliation['value'])
     except KeyError:
-        pass 
+        pass
     doe_affs = []
     doe_affs_long = []
     for aff in affiliations:
@@ -419,7 +417,7 @@ def create_xml(jrec, records):
     if VERBOSE:
         print(url, accepted)
     if url is None:
-        if get_report_hidden(jrec) == True:
+        if get_report_hidden(jrec):
             eprint = get_eprint(jrec)
             if eprint:
                 url = f'https://arxiv.org/pdf/{eprint}.pdf'
@@ -587,6 +585,7 @@ def find_result(search_input=None):
     return None
 
 def get_new_accepteds():
+    '''Find the new accepted PDFs'''
 
     recid_list = []
     for search in SEARCH_ACCEPTED:
