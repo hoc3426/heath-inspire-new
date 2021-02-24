@@ -43,6 +43,48 @@ def get_records(url=None, payload=None, headers=None, session=None,
     return True
 
 
+import requests
+from backoff import expo, on_exception
+
+YOUR_EMAIL = 'hoc@fnal.gov'
+INSPIRE_LITERATURE_API_ENDPOINT = 'https://labs.inspirehep.net/api/literature'
+SIZE = 250
+
+session = requests.Session()
+session.headers.update({'User-Agent': f'INSPIRE API Client ({YOUR_EMAIL})'})
+session.headers.update({'Authorization' : f'Token {TOKEN}'})
+
+CONECTION_ERRORS = (requests.exceptions.ConnectionError,
+                    requests.exceptions.HTTPError)
+
+@on_exception(expo, CONECTION_ERRORS, max_tries=10)
+def perform_inspire_literature_search(query, fields=()):
+    '''Perform the search query on INSPIRE.
+    Args:
+        query (str): the search query to get the results for.
+        fields (iterable): a list of fields to return.
+    Yields:
+        dict: the json response for every record.
+    '''
+    params={'q': query, 'fields': ','.join(fields)}
+    params['size'] = SIZE
+
+    response = session.get(INSPIRE_LITERATURE_API_ENDPOINT, params=params)
+    response.raise_for_status()
+    content = response.json()
+
+    for result in content['hits']['hits']:
+        yield result['metadata']
+
+    while 'next' in content.get('links', {}):
+        response = session.get(content['links']['next'])
+        response.raise_for_status()
+        content = response.json()
+
+        for result in content['hits']['hits']:
+            yield result['metadata']
+
+
 def get_json_records(records):
     ''' take generator object of records and return a list of records '''
 
@@ -67,6 +109,7 @@ def get_result(search, fields=None, collection='literature'):
         args.update({'fields':fields})
     url = URL + collection
     records = get_records(url, payload=args, headers=HEADERS)
+    #records = perform_inspire_literature_search(search, fields=())
     result = get_json_records(records)
     if result is None:
         print(f'Problem with the search: {search}')
