@@ -35,10 +35,6 @@ def perform_inspire_literature_search(query, fields, collection):
     response = session.get(url, params=params)
     response.raise_for_status()
 
-    print(url)
-    print(response.status_code)
-    print(response.text)
-
     content = response.json()
     yield content['hits']['total']
 
