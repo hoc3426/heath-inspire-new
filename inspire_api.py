@@ -54,10 +54,10 @@ def get_result(search, fields=(), collection='literature'):
 
     if isinstance(search, int) or search.isdigit():
         search = f'recid:{search}'
+
     records = perform_inspire_literature_search(search, fields, collection)
 
     total = next(records)
-    print(f'total={total}')
 
     count = 0
     record_list = []

@@ -294,6 +294,12 @@ def get_abstract(jrec):
 def get_report_hidden(jrec):
 
     hidden = False
+    try:
+        reports = jrec['metadata']['report_numbers']
+    except KeyError:
+        print(jrec)
+        print('No report number')
+        quit()
     for report in jrec['metadata']['report_numbers']:
         if 'hidden' in report and report['value'].startswith('FERMILAB'):
             if report['hidden']:
