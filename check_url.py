@@ -40,11 +40,11 @@ def get_url_check_accepted(jrec):
     url = None
     urls = []
     try:
-        urls += jrec['metadata']['urls']
+        urls += jrec['urls']
     except (KeyError, TypeError):
         pass
     try:
-        urls += jrec['metadata']['documents']
+        urls += jrec['documents']
     except (KeyError, TypeError):
         pass
     for url_dict in urls:

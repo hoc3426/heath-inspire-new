@@ -17,7 +17,25 @@ CONECTION_ERRORS = (requests.exceptions.ConnectionError,
                     requests.exceptions.HTTPError)
 
 @on_exception(expo, CONECTION_ERRORS, max_tries=10)
-def perform_inspire_literature_search(query, fields, collection):
+def get_record(input_value, collection='literature'):
+    '''Get a single INSPIRE record based on url or recid.'''
+
+    if isinstance(input_value, int) or input_value.isdigit():
+        url = f'{INSPIRE_API_ENDPOINT}/{collection}/{input_value}'
+    elif input_value.startswith(INSPIRE_API_ENDPOINT):
+        url = input_value
+    else:
+        print(f'get_record: unrecognized input {input_value}')
+        print('  Should be INSPIRE url or recid')
+        return None
+    response = session.get(url)
+    response.raise_for_status()
+    content = response.json()
+    return content['metadata']
+
+
+@on_exception(expo, CONECTION_ERRORS, max_tries=10)
+def perform_inspire_collection_search(query, fields, collection='literature'):
     '''Perform the search query on INSPIRE.
     Args:
         query (str): the search query to get the results for.
@@ -32,9 +50,9 @@ def perform_inspire_literature_search(query, fields, collection):
             'size': SIZE}
 
     url = f'{INSPIRE_API_ENDPOINT}/{collection}'
+
     response = session.get(url, params=params)
     response.raise_for_status()
-
     content = response.json()
     yield content['hits']['total']
 
@@ -55,7 +73,7 @@ def get_result(search, fields=(), collection='literature'):
     if isinstance(search, int) or search.isdigit():
         search = f'recid:{search}'
 
-    records = perform_inspire_literature_search(search, fields, collection)
+    records = perform_inspire_collection_search(search, fields, collection)
 
     total = next(records)
 

@@ -14,6 +14,7 @@ import datetime
 import shutil
 import sys
 
+from authors import get_orcid_from_author
 from inspire_api import get_result, get_result_ids
 from check_url import get_url_check_accepted, get_pdf_from_url
 from osti_accepteds import check_in_accepteds,\
@@ -42,7 +43,7 @@ def create_osti_id_pdf(jrec=None, recid=None, osti_id=None,
     '''
 
     if jrec and recid is None:
-        recid = jrec['id']
+        recid = jrec['control_number']
     if recid is None or osti_id is None or doi is None or reports is None:
         return None
     accepteds = retrieve_accepteds()
@@ -77,7 +78,7 @@ def get_language(jrec):
     ''' Find the langauge of the work. '''
 
     try:
-        return jrec['metadata']['languages'][0]
+        return jrec['languages'][0]
     except KeyError:
         return 'English'
 
@@ -85,7 +86,7 @@ def get_osti_id(jrec):
     ''' Find the osti_id from an INSPIRE record '''
 
     try:
-        identifiers = jrec['metadata']['external_system_identifiers']
+        identifiers = jrec['external_system_identifiers']
     except (KeyError, TypeError):
         return None
     for identifier in identifiers:
@@ -106,36 +107,36 @@ def check_already_sent(jrec):
 def get_title(jrec):
     '''Get title with in xml compliant form.'''
     try:
-        title = jrec['metadata']['titles'][0]['title']
+        title = jrec['titles'][0]['title']
         title = escape(title)
         return title
     except IndexError:
-        print('Problem with title on', jrec['id'])
+        print('Problem with title on', jrec['control_number'])
         return None
 
 def get_pubnote(jrec):
     '''Gets publication information'''
     try:
-        journal = jrec['metadata']['publication_info'][0]['journal_title']
+        journal = jrec['publication_info'][0]['journal_title']
     except KeyError:
         journal = None
     try:
-        volume = jrec['metadata']['publication_info'][0]['journal_volume']
+        volume = jrec['publication_info'][0]['journal_volume']
     except KeyError:
         volume = None
     try:
-        issue = jrec['metadata']['publication_info'][0]['journal_issue']
+        issue = jrec['publication_info'][0]['journal_issue']
     except KeyError:
         issue = None
     try:
-        pages = jrec['metadata']['publication_info'][0]['artid']
+        pages = jrec['publication_info'][0]['artid']
     except KeyError:
         try:
-            pages = jrec['metadata']['publication_info'][0]['page_start']
+            pages = jrec['publication_info'][0]['page_start']
         except KeyError:
             pages = None
     try:
-        doi = jrec['metadata']['dois'][0]['value']
+        doi = jrec['dois'][0]['value']
     except KeyError:
         doi = None
     return [journal, volume, issue, pages, doi]
@@ -189,7 +190,7 @@ def get_author_details(jrec, authors):
     '''Get authors broken out as individuals'''
 
     try:
-        paper_authors = jrec['metadata']['authors']
+        paper_authors = jrec['authors']
     except KeyError:
         return None
     for item in paper_authors:
@@ -237,6 +238,8 @@ def get_author_details(jrec, authors):
                     orcid = re.sub(r'ORCID:', '', id_num['value'])
         except KeyError:
             pass
+        if orcid is None:
+            orcid = get_orcid_from_author(item)
         ET.SubElement(authors_detail, 'first_name').text = first_name
         ET.SubElement(authors_detail, 'middle_name').text = middle_name
         ET.SubElement(authors_detail, 'last_name').text = last_name
@@ -248,9 +251,9 @@ def get_corporate_author(jrec):
     '''Check to see if there is a corporte author and return it.'''
 
     try:
-        #author_list = jrec['metadata']['corporate_author']
+        #author_list = jrec['corporate_author']
         authors = []
-        author_dict_list = jrec['metadata']['record_affiliations']
+        author_dict_list = jrec['record_affiliations']
         for author_dict in author_dict_list:
             authors.append(author_dict['value'])
         return '; '.join(authors)
@@ -261,14 +264,14 @@ def get_corporate_author(jrec):
 def get_author_first(jrec):
     '''Get authors as a long string, truncate at 10.'''
     try:
-        return jrec['metadata']['authors'][0]['full_name'] + '; et al.'
+        return jrec['authors'][0]['full_name'] + '; et al.'
     except KeyError:
         return None
 
 def get_author_number(jrec):
     '''Gets number of authors.'''
     try:
-        return len(jrec['metadata']['authors'])
+        return len(jrec['authors'])
     except KeyError:
         return 0
 
@@ -276,7 +279,7 @@ def get_collaborations(jrec):
     '''Get the collaboration information'''
     try:
         collaborations = [x['value'] for x in
-                          jrec['metadata']['collaborations']]
+                          jrec['collaborations']]
         return '; '.join(collaborations)
     except KeyError:
         return None
@@ -284,7 +287,7 @@ def get_collaborations(jrec):
 def get_abstract(jrec):
     '''Get abstract if it exists.'''
     try:
-        abstract = jrec['metadata']['abstracts'][0]['value']
+        abstract = jrec['abstracts'][0]['value']
         if len(abstract) > 4990:
             abstract = abstract[:4990] + '...'
         return abstract
@@ -295,12 +298,12 @@ def get_report_hidden(jrec):
 
     hidden = False
     try:
-        reports = jrec['metadata']['report_numbers']
+        reports = jrec['report_numbers']
     except KeyError:
         print(jrec)
         print('No report number')
         quit()
-    for report in jrec['metadata']['report_numbers']:
+    for report in jrec['report_numbers']:
         if 'hidden' in report and report['value'].startswith('FERMILAB'):
             if report['hidden']:
                 hidden = True
@@ -311,7 +314,7 @@ def get_reports(jrec):
 
     eprint = get_eprint(jrec)
     try:
-        reports = [x['value'] for x in jrec['metadata']['report_numbers']]
+        reports = [x['value'] for x in jrec['report_numbers']]
         report = '; '.join(r for r in reports)
         if eprint:
             report += f'; arXiv:{eprint}'
@@ -336,7 +339,7 @@ def get_subject_categories(jrec):
     '''Convert INSPIRE subject codes to OSTI codes.'''
 
     try:
-        categories = jrec['metadata']['inspire_categories']
+        categories = jrec['inspire_categories']
     except KeyError:
         return None
     osti_categories = []
@@ -352,7 +355,7 @@ def get_affiliations(jrec, long_flag):
     affiliations = set(['Fermilab'])
     paper_authors = None
     try:
-        paper_authors = jrec['metadata']['authors']
+        paper_authors = jrec['authors']
         for author in paper_authors:
             if not 'affiliations' in author:
                 continue
@@ -374,20 +377,20 @@ def get_eprint(jrec):
     '''Get the eprint number'''
 
     try:
-        return jrec['metadata']['arxiv_eprints'][0]['value']
+        return jrec['arxiv_eprints'][0]['value']
     except KeyError:
         return None
 
 def get_date(jrec, product_type):
     '''Get date in format mm/dd/yyyy, yyyy or yyyy Month.'''
     try:
-        date = jrec['metadata']['imprints'][0]['date']
+        date = jrec['imprints'][0]['date']
     except KeyError:
         try:
-            date = jrec['metadata']['preprint_date']
+            date = jrec['preprint_date']
         except KeyError:
             try:
-                date = jrec['metadata']['thesis_info']['date']
+                date = jrec['thesis_info']['date']
             except KeyError:
                 date = '1900'
     try:
@@ -432,7 +435,7 @@ def create_xml(jrec, records):
     osti_id = get_osti_id(jrec)
     if check_in_accepteds(osti_id):
         return None
-    recid = jrec['id']
+    recid = jrec['control_number']
     product_type = get_product_type(jrec)
     if accepted:
         product_type = 'JA'
@@ -548,7 +551,7 @@ def main(result):
             break
         if check_already_sent(jrec):
             if VERBOSE:
-                print("Already sent", jrec['id'])
+                print("Already sent", jrec['control_number'])
             continue
         record_test = create_xml(jrec, records)
         if record_test:
