@@ -3,9 +3,8 @@
 import requests
 from backoff import expo, on_exception
 
-from inspire_api_constants_private import TOKEN
+from inspire_api_constants_private import TOKEN, YOUR_EMAIL
 
-YOUR_EMAIL = 'hoc@fnal.gov'
 INSPIRE_API_ENDPOINT = 'https://inspirehep.net/api'
 SIZE = '250'
 
@@ -85,7 +84,7 @@ def get_result(search, fields=(), collection='literature'):
         print(f'Warning: total={total} count={count}')
     return record_list
 
-def get_result_ids(search, collection):
+def get_result_ids(search, collection='literature'):
     ''' get a list of recids '''
 
     ids = []
@@ -94,5 +93,5 @@ def get_result_ids(search, collection):
         #print(f'No result for {search}')
         return []
     for record in result:
-        ids.append(record['id'])
+        ids.append(record['control_number'])
     return ids
